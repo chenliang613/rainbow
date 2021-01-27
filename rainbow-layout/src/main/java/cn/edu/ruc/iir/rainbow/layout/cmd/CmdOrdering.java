@@ -1,12 +1,14 @@
 package cn.edu.ruc.iir.rainbow.layout.cmd;
 
 import cn.edu.ruc.iir.rainbow.common.cmd.Command;
+import cn.edu.ruc.iir.rainbow.common.cmd.ProgressListener;
 import cn.edu.ruc.iir.rainbow.common.cmd.Receiver;
 import cn.edu.ruc.iir.rainbow.common.exception.*;
+import cn.edu.ruc.iir.rainbow.common.util.ConfigFactory;
 import cn.edu.ruc.iir.rainbow.layout.algorithm.Algorithm;
 import cn.edu.ruc.iir.rainbow.layout.algorithm.AlgorithmFactory;
 import cn.edu.ruc.iir.rainbow.layout.algorithm.ExecutorContainer;
-import cn.edu.ruc.iir.rainbow.common.cmd.ProgressListener;
+import cn.edu.ruc.iir.rainbow.layout.algorithm.impl.ord.FastScoaGS;
 import cn.edu.ruc.iir.rainbow.layout.builder.ColumnOrderBuilder;
 import cn.edu.ruc.iir.rainbow.layout.builder.SimulatedSeekCostBuilder;
 import cn.edu.ruc.iir.rainbow.layout.builder.WorkloadBuilder;
@@ -16,7 +18,9 @@ import cn.edu.ruc.iir.rainbow.layout.seekcost.LinearSeekCostFunction;
 import cn.edu.ruc.iir.rainbow.layout.seekcost.PowerSeekCostFunction;
 import cn.edu.ruc.iir.rainbow.layout.seekcost.SeekCostFunction;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,12 +49,16 @@ public class CmdOrdering implements Command
      *   <li>seek.cost.function, should be one of linear, power, simulated, if it is not given, then power is applied</li>
      *   <li>seek.cost.file, if seek.cost.function is set to simulated, this param should be given</li>
      *   <li>computation.budget</li>
+     *   <li>row.group.size, in bytes, if algorithm.name is scoa.gs</li>
+     *   <li>num.row.group, if algorithm.name is scoa.gs</li>
      * </ol>
      *
      * this method will pass the following results to receiver:
      * <ol>
      *   <li>init.cost, in milliseconds</li>
      *   <li>final.cost, in milliseconds</li>
+     *   <li>row.group.size, in bytes</li>
+     *   <li>num.row.group</li>
      *   <li>ordered.schema.file</li>
      *   <li>success, true or false</li>
      * </ol>
@@ -103,7 +111,21 @@ public class CmdOrdering implements Command
             Algorithm algo = AlgorithmFactory.Instance().getAlgorithm(algoName,
                     budget, new ArrayList<>(initColumnOrder), workload, seekCostFunction);
 
-            results.setProperty("init.cost", String.valueOf(algo.getSchemaSeekCost()));
+            if (algo instanceof FastScoaGS)
+            {
+                FastScoaGS gs = (FastScoaGS) algo;
+                gs.setNumRowGroups(Integer.parseInt(params.getProperty("num.row.group")));
+                gs.setRowGroupSize(Long.parseLong(params.getProperty("row.group.size")));
+                gs.setNumMapSlots(Integer.parseInt(ConfigFactory.Instance().getProperty("node.map.slots")));
+                gs.setTotalMemory(Long.parseLong(ConfigFactory.Instance().getProperty("node.memory")));
+                gs.setTaskInitMs(Integer.parseInt(ConfigFactory.Instance().getProperty("node.task.init.ms")));
+                results.setProperty("init.cost", String.valueOf(gs.getSchemaOverhead()));
+            }
+            else
+            {
+                results.setProperty("init.cost", String.valueOf(algo.getSchemaSeekCost()));
+            }
+
             try
             {
                 ProgressListener progressListener = percentage -> {
@@ -119,8 +141,27 @@ public class CmdOrdering implements Command
                 ExceptionHandler.Instance().log(ExceptionType.ERROR, "thread number is " + 1, e);
             }
 
-            results.setProperty("final.cost", String.valueOf(algo.getCurrentWorkloadSeekCost()));
             ColumnOrderBuilder.saveAsSchemaFile(new File(orderedFilePath), algo.getColumnOrder());
+
+            if (algo instanceof FastScoaGS)
+            {
+                FastScoaGS gs = (FastScoaGS) algo;
+                results.setProperty("final.cost", String.valueOf(gs.getCurrentOverhead()));
+                results.setProperty("row.group.size", String.valueOf(gs.getRowGroupSize()));
+                results.setProperty("num.row.group", String.valueOf(gs.getNumRowGroups()));
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(orderedFilePath+".gs")))
+                {
+                    writer.write("row.group.size=" + results.getProperty("row.group.size"));
+                    writer.newLine();
+                    writer.write("init.cost=" + results.getProperty("init.cost"));
+                    writer.newLine();
+                    writer.write("final.cost=" + results.getProperty("final.cost"));
+                }
+            }
+            else
+            {
+                results.setProperty("final.cost", String.valueOf(algo.getCurrentWorkloadSeekCost()));
+            }
 
             results.setProperty("success", "true");
         } catch (IOException e)

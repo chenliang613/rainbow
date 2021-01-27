@@ -38,14 +38,14 @@ public class FastInsertionDup extends DupAlgorithm
     private WorkloadPattern workloadPattern = null;
 
     // configurations
-    private int selectFreq = 10;
+    private int selectStride = 10;
     //private int refineFreq = 5;
-    private int refineFreq = 10;
+    private int refineStride = 10;
     //private int refineBudget = 800;
     private int refineBudget = 200;
     //private int maxDupedColumnNum = 250;
     private int maxDupedColumnNum = 200;
-    private double overhead = 0.05;
+    private double headroom = 0.05;
     //private int candidateColumnNum = 300;
     private int candidateColumnNum = 200;
     private int threadNum = 2;
@@ -70,12 +70,12 @@ public class FastInsertionDup extends DupAlgorithm
     {
         this.setColumnOrder(new ArrayList<>(this.getSchema()));
         this.maxDupedColumnNum = Integer.parseInt(ConfigFactory.Instance().getProperty("dup.max.duped.columns"));
-        this.overhead = Double.parseDouble(ConfigFactory.Instance().getProperty("dup.storage.overhead"));
+        this.headroom = Double.parseDouble(ConfigFactory.Instance().getProperty("dup.storage.headroom"));
         this.refineBudget = Integer.parseInt(ConfigFactory.Instance().getProperty("refine.budget"));
-        this.candidateColumnNum = Integer.parseInt(ConfigFactory.Instance().getProperty("refine.candidate.column.num"));
+        this.candidateColumnNum = Integer.parseInt(ConfigFactory.Instance().getProperty("insertion.candidate.column.num"));
         this.threadNum = Integer.parseInt(ConfigFactory.Instance().getProperty("refine.thread.num"));
-        this.selectFreq = Integer.parseInt(ConfigFactory.Instance().getProperty("refine.select.frequency"));
-        this.refineFreq = Integer.parseInt(ConfigFactory.Instance().getProperty("refine.frequency"));
+        this.selectStride = Integer.parseInt(ConfigFactory.Instance().getProperty("insertion.select.stride"));
+        this.refineStride = Integer.parseInt(ConfigFactory.Instance().getProperty("insertion.refine.stride"));
 
         this.columnDupGain = new double[this.getColumnOrder().size()];
         this.columnDupPos = new int[this.getColumnOrder().size()];
@@ -201,10 +201,10 @@ public class FastInsertionDup extends DupAlgorithm
         double usedVolume = 0;
 
         //duplication
-        while (dupedColIds.size() < this.maxDupedColumnNum)
+        while (dupedColIds.size() < this.maxDupedColumnNum && usedVolume < this.headroom * totalSize)
         {
             // select the columns for duplication
-            if (dupedColIds.size() % selectFreq == 0)
+            if (dupedColIds.size() % selectStride == 0)
             {
                 this.selectColumnsForDup();
             }
@@ -234,6 +234,7 @@ public class FastInsertionDup extends DupAlgorithm
             if (bestColIdIndex == -1 || maxGain < 1e-6)
             {
                 LogFactory.Instance().getLog().info("[FastInsertionDup] No more gains, quit...");
+                System.out.println("[FastInsertionDup] No more gains, quit...");
                 break;
             }
             dupedColIds.add(colIdsSelected.get(bestColIdIndex));
@@ -257,7 +258,7 @@ public class FastInsertionDup extends DupAlgorithm
 
 
             // refine
-            if (dupedColIds.size() > 0 && dupedColIds.size() % refineFreq == 0)
+            if (dupedColIds.size() > 0 && dupedColIds.size() % refineStride == 0)
             {
                 double refineGain = 0;
                 try
@@ -281,6 +282,14 @@ public class FastInsertionDup extends DupAlgorithm
             if (dupedColIds.size() >= this.maxDupedColumnNum)
             {
                 LogFactory.Instance().getLog().info("[FastInsertionDup] Max duped column num reached, quit...");
+                System.out.println("[FastInsertionDup] Max duped column num reached, quit...");
+                break;
+            }
+
+            if (usedVolume > this.headroom * totalSize)
+            {
+                LogFactory.Instance().getLog().info("[FastInsertionDup] Max storage headroom reached, quit...");
+                System.out.println("[FastInsertionDup] Max storage headroom reached, quit...");
                 break;
             }
         }

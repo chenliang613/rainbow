@@ -3,11 +3,11 @@
 Rainbow Benchmark contains java based command line tool that helps generate data in wide tables.
 
 >
-Note: Due to security and privacy considerations, data is randomly generated in Rainbow Benchmark.
-No details about the production data contents, schema and query workload in Microsoft Bing are
-allowed to be public. Although we take lessons from the patterns of real-world data schema and query workload,
-the workload and schema templates used in Rainbow are totally rewritten. They are different from the
-workload and data schema used in Microsoft Bing ([paper](http://dl.acm.org/citation.cfm?id=3035930)).
+> Note: Due to security and privacy considerations, data is randomly generated in Rainbow Benchmark.
+> No details about the production data contents, schema and query workload in Microsoft Bing are
+> allowed to be public. Although we take lessons from the patterns of real-world data schema and query workload,
+> the workload and schema templates used in Rainbow are totally rewritten. They are different from the
+> workload and data schema used in our [paper](http://dl.acm.org/citation.cfm?id=3035930).
 >
 
 ## Prepare
@@ -61,4 +61,4 @@ $ hdfs dfs -mkdir -p /rainbow/text
 $ hdfs dfs -put ./benchmark_data/data/* /rainbow/text/
 ```
 
-- Go to [Rainbow Core](https://github.com/dbiir/rainbow/blob/master/rainbow-core/README.md) and follow the steps in it.
+- Go to [Rainbow CLI](https://github.com/dbiir/rainbow/blob/master/rainbow-cli/README.md) and follow the steps in it.

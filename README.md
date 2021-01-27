@@ -2,28 +2,35 @@
 
 Rainbow is a tool that helps improve the I/O performance of wide tables stored in columnar formats on HDFS.
 
+### Demonstration
+[Video:](https://www.youtube.com/embed/6qaJBPZiHSA)
+
+[![IMAGE](https://github.com/dbiir/rainbow/blob/master/docs/resources/images/video.png)](https://www.youtube.com/embed/6qaJBPZiHSA)
+
+More information in our [project main page](https://dbiir.github.io/rainbow/).
+
 ### HDFS Column Store
 In many industrial and academic data analytical applications, huge amount of structured data is stored as wide two-dimension tables in columnar file formats on HDFS.
-Popular columnar file formats including RC File, ORC, Parquet and Carbondata are widely supported in data analytical
-systems over HDFS, such as Hive, Spark, Presto and Impala.
+Popular columnar file formats, including RC File, ORC, Parquet and Carbondata, are widely supported in data analytical
+systems over HDFS such as Hive, Spark, Presto and Impala.
 
 These file formats partition the data into row groups and place data inside
 a row group in columnar manner. A row group is stored in an HDFS block. This is an efficient
-way due to that it introduces most advantages of column store into Hadoop ecosystem
+way for that it introduces most advantages of column store into Hadoop ecosystem
 without affecting parallelism, scalability and fault-tolerance.
 
 ### Wide Tables
 With these file formats, tables on HDFS are becoming very wide, from a few hundred columns to tens of thousands.
-Wide Table has some good features:
+Wide Table has some important advantages:
 - **Join Cost Saving:** distributed joins are very expensive in HDFS environment. With wide tables, distributed joins are no longer needed.
 - **Easy Schema Modification:** new workloads and new schema requirements are emerging everyday. Adding new fields to a wide table is much easier than redesigning the schema following normal forms.
 - **Application Friendly:** new data features can be added to the table as a set of new fields without interrupting or modifying running applications.
 
-Although everything looks good with wide tables stored as columnar formats on HDFS, the I/O efficiency and query
+Although everything looks good having the wide tables stored as columnar formats on HDFS, the I/O efficiency and query
 performance are far from optimal.
 
-In an experimental example, given a 400GB, 1187-column table store as Parquet in a single node HDFS. The read bandwidth of HDFS is 100MB/s. A query took 907 seconds to read 8 columns (0.3% data, i.e. 1.2GB)
-from the table. While ideally, it may take only 12 seconds.
+In an experimental example, given a 400GB, 1187-column table stored as Parquet in a single node HDFS. The read bandwidth of HDFS is 100MB/s. A query took 907 seconds to read 8 columns (0.3% data, i.e. 1.2GB)
+from the table. While ideally, it should take only 12 seconds.
 
 Such a huge gap between ideal and reality is caused by disk seeks. The columns read by a query may not be continuous on disk so that seek cost becomes the major part of I/O cost.
 
@@ -31,8 +38,8 @@ We wrote a **[Paper (SIGMOD'17)](http://dl.acm.org/citation.cfm?id=3035930)** on
 the paper.
 
 >
-Note: Rainbow does not contain any source code used in the original implementations described in section 5 and 6 of the paper.
-Copyrights and patents of the original implementations are not included in Rainbow.
+> Note: Rainbow does not contain any source code used in the original implementations described in section 5 and 6 of the paper.
+> Copyrights and patents of the original implementations are not included in Rainbow.
 >
 
 ## How to Use it?
@@ -42,18 +49,20 @@ SQL statements. The generated CREATE TABLE and LOAD DATA statements can be used 
 
 Rainbow does not need to be installed. It does not change anything except your CREATE TABLE statements.
 
-Follow the steps in [Rainbow Core](https://github.com/dbiir/rainbow/blob/master/rainbow-core/README.md) to use it.
+Follow the steps in [Rainbow CLI](https://github.com/dbiir/rainbow/blob/master/rainbow-cli/README.md) to use the command line interface of Rainbow.
+
+Or follow the steps in [Rainbow Web](https://github.com/dbiir/rainbow/blob/master/rainbow-web/README.md) to use the Web user interface of Rainbow.
 
 ## Contact us
 For feedback and questions, feel free to email us:
 * Haoqiong Bian bianhaoqiong@gmail.com
-* Guodong Jin jelly.guodong.jin@gmail.com
+* Guodong Jin guod.jin@gmail.com
 * Youxian Tao taoyouxian@aliyun.com
 
 Welcome to contribute and submit pull requests :)
 
 ## Project Structure
-* **rainbow-core**
+* **rainbow-cli**
   schedules the other modules and provides a command line interface of Rainbow.
 
 * **rainbow-benchmark**
